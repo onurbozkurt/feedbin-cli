@@ -144,27 +144,18 @@ module FeedbinCLI
     end
 
     def get_entries_by_ids(credentials, ids)
-      response = make_request("/entries.json?ids=#{ids.join(',')}&mode=extended", credentials)
+      response = make_request("/entries.json?ids=#{ids.join(',')}", credentials)
       entries = handle_response(response, 'entries')
       return unless entries
 
       # Get feed information for these entries
-      feed_ids = entries.map { |e| e['feed_id'] }.uniq
-      feeds = get_feeds_by_ids(credentials, feed_ids)
+      feeds = get_subscriptions(credentials)
       return entries unless feeds
 
       # Add feed titles to entries
-      feed_map = feeds.each_with_object({}) { |feed, map| map[feed['id']] = feed['title'] }
-      entries.each { |entry| entry['feed_title'] = feed_map[entry['feed_id']] }
+      feed_map = feeds.each_with_object({}) { |feed, map| map[feed['feed_id']] = feed['title'] }
+      entries.each { |entry| entry['feed_title'] = feed_map.dig(entry['feed_id']) }
       entries
-    end
-
-    def get_feeds_by_ids(credentials, ids)
-      response = make_request("/feeds.json", credentials)
-      feeds = handle_response(response, 'feeds')
-      return unless feeds
-
-      feeds.select { |feed| ids.include?(feed['id']) }
     end
 
     def mark_as_read(credentials, ids)
